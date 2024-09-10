@@ -4,7 +4,10 @@ const fs = require("fs");
 const RPC = require("./discord-rpc/RPC");
 const utils = require("./utils");
 const { objectDefaults } = utils;
-let config = objectDefaults(JSON.parse(fs.readFileSync("./config.json", "utf-8")), {
+const dataPath = app.getPath("userData");
+let configFile;
+try { configFile = JSON.parse(fs.readFileSync(path.join(dataPath, "config.json"), "utf-8")) } catch (err) { };
+let config = objectDefaults(configFile, {
     width: 800,
     height: 600,
     minWidth: 400,
@@ -123,7 +126,7 @@ function updateConfig(newConfig) {
     lastConfigUpdate = Date.now();
     console.log("Updating config");
     config = { ...config, ...newConfig };
-    fs.writeFileSync("./config.json", JSON.stringify(config, null, 4));
+    fs.writeFileSync(path.join(dataPath, "config.json"), JSON.stringify(config, null, 4));
 }
 
 ipcMain.handle("set-idle", (event) => {
