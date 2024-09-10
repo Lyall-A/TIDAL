@@ -8,16 +8,20 @@ const dataPath = app.getPath("userData");
 let configFile;
 try { configFile = JSON.parse(fs.readFileSync(path.join(dataPath, "config.json"), "utf-8")) } catch (err) { };
 let config = objectDefaults(configFile, {
+    x: null,
+    y: null,
     width: 800,
     height: 600,
-    minWidth: 400,
-    minHeight: 400,
-    playerCheckInterval: 500,
     discordClientId: "1020683907101892709",
     discordRPC: true,
     discordTitle: "TIDAL",
     discordType: 2,
-    discordIdleText: "Browing TIDAL",
+    discordIdleText: "Browsing TIDAL",
+    playerCheckInterval: 500,
+    trackInTitle: true,
+    minWidth: 400,
+    minHeight: 400,
+    minimizeToSystemTray: true
 });
 
 let window;
