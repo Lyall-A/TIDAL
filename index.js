@@ -1,5 +1,5 @@
 const path = require("path");
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, Tray, Menu } = require("electron");
 const fs = require("fs");
 const RPC = require("./discord-rpc/RPC");
 const utils = require("./utils");
@@ -14,6 +14,8 @@ let config = objectDefaults(require("./config.json"), {
     minHeight: 400
 });
 
+let window;
+let tray;
 let lastConfigUpdate;
 let discordRpc;
 let discordRpcReady = false;
@@ -25,9 +27,9 @@ updateConfig();
 if (config.discordRPC) setupDiscordRPC();
 
 function createWindow() {
-    const window = new BrowserWindow({
+    window = new BrowserWindow({
         title: "TIDAL",
-        icon: "icon.png",
+        icon: path.resolve(__dirname, "icon.png"),
         x: config.x,
         y: config.y,
         width: config.width,
@@ -40,7 +42,7 @@ function createWindow() {
         }
     });
 
-    window.setMenuBarVisibility(false);
+    window.setMenuBarVisibility(false); 
 
     window.webContents.send("config", config);
 
@@ -55,9 +57,28 @@ function createWindow() {
         const [width, height] = window.getSize();
         updateConfig({ width, height });
     });
+
+    window.on("show", () => {
+        console.log("Window showed");
+    });
+
+    window.on("close", event => {
+        if (app.isQuitting || !config.minimizeToSystemTray) return console.log("Closing");
+        console.log("Minimizing to system tray");
+        event.preventDefault();
+        window.hide();
+    });
 }
 
 app.whenReady().then(() => {
+    tray = new Tray(path.join(__dirname, "icon.png"));
+    tray.setToolTip("TIDAL");
+    tray.on("click", () => window.show());
+    tray.setContextMenu(Menu.buildFromTemplate([
+        { label: "Show", click: () => window.show() },
+        { label: "Quit", click: () => app.fullQuit() },
+    ]))
+
     createWindow();
 
     app.on("activate", () => {
@@ -69,6 +90,11 @@ app.on("window-all-closed", () => {
     if (process.platform !== "darwin") app.quit();
 });
 
+app.fullQuit = () => {
+    app.isQuitting = true;
+    app.quit();
+}
+
 function setupDiscordRPC() {
     console.log("Setting up Discord RPC");
     discordRpc = new RPC({ clientId: config.discordClientId });
@@ -78,7 +104,7 @@ function setupDiscordRPC() {
         console.log("Discord RPC ready");
         discordRpcReady = true;
     });
-    // discordRpc.on("ipc-message", console.log);
+    // discordRpc.on("ipc-m essage", console.log);
 }
 
 function updateConfig(newConfig) {
@@ -98,6 +124,7 @@ function updateConfig(newConfig) {
 }
 
 ipcMain.handle("set-idle", (event) => {
+    // console.log("Set idle");
     if (discordRpcReady) discordRpc.setActivity({
         name: "TIDAL",
         type: 2,
@@ -110,6 +137,7 @@ ipcMain.handle("set-idle", (event) => {
 });
 
 ipcMain.handle("set-playing", (event, playing) => {
+    // console.log("Set playing", playing);
     if (discordRpcReady) discordRpc.setActivity({
         name: "TIDAL",
         type: 2,

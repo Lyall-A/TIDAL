@@ -1,12 +1,13 @@
 {
-    "x": 441,
-    "y": 169,
-    "width": 1174,
-    "height": 702,
+    "x": null,
+    "y": null,
+    "width": 800,
+    "height": 600,
     "discordClientId": "1020683907101892709",
     "discordRPC": true,
     "playerCheckInterval": 500,
     "trackInTitle": true,
     "minWidth": 400,
-    "minHeight": 400
+    "minHeight": 400,
+    "minimizeToSystemTray": false
 }
