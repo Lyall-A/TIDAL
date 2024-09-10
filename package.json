@@ -1,0 +1,14 @@
+{
+  "name": "tidal",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "electron": "github:castlabs/electron-releases#v32.0.0+wvcus"
+  }
+}
