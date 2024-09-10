@@ -3,12 +3,24 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "build": "electron-builder"
   },
   "author": "",
   "license": "ISC",
   "description": "",
+  "build": {
+    "electronDist": "node_modules/electron/dist",
+    "appId": "com.lyall-a.tidal",
+    "productName": "TIDAL",
+    "files": [
+      "**/*",
+      "!node_modules",
+      "!dist/**/*"
+    ]
+  },
   "devDependencies": {
-    "electron": "github:castlabs/electron-releases#v32.0.0+wvcus"
+    "electron": "github:castlabs/electron-releases#v32.0.0+wvcus",
+    "electron-builder": "^25.0.5"
   }
 }

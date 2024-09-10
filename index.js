@@ -11,7 +11,10 @@ let config = objectDefaults(require("./config.json"), {
     discordRPC: true,
     playerCheckInterval: 500,
     minWidth: 400,
-    minHeight: 400
+    minHeight: 400,
+    discordTitle: "TIDAL",
+    discordType: 2,
+    discordIdleText: "Browing TIDAL"
 });
 
 let window;
@@ -71,7 +74,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-    tray = new Tray(path.join(__dirname, "icon.png"));
+    tray = new Tray(path.join(__dirname, "tray.png"));
     tray.setToolTip("TIDAL");
     tray.on("click", () => window.show());
     tray.setContextMenu(Menu.buildFromTemplate([
@@ -120,15 +123,15 @@ function updateConfig(newConfig) {
     lastConfigUpdate = Date.now();
     console.log("Updating config");
     config = { ...config, ...newConfig };
-    fs.writeFileSync(path.resolve(__dirname, "config.json"), JSON.stringify(config, null, 4));
+    fs.writeFileSync("./config.json", JSON.stringify(config, null, 4));
 }
 
 ipcMain.handle("set-idle", (event) => {
     // console.log("Set idle");
     if (discordRpcReady) discordRpc.setActivity({
-        name: "TIDAL",
-        type: 2,
-        details: "Browsing TIDAL",
+        name: config.discordTitle,
+        type: config.discordType,
+        details: config.discordIdleText,
         assets: {
             large_image: "tidal",
             large_text: "TIDAL"
@@ -139,8 +142,8 @@ ipcMain.handle("set-idle", (event) => {
 ipcMain.handle("set-playing", (event, playing) => {
     // console.log("Set playing", playing);
     if (discordRpcReady) discordRpc.setActivity({
-        name: "TIDAL",
-        type: 2,
+        name: config.discordTitle,
+        type: config.discordType,
         details: playing.title,
         state: playing.artist,
         assets: {
