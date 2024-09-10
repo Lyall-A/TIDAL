@@ -4,17 +4,17 @@ const fs = require("fs");
 const RPC = require("./discord-rpc/RPC");
 const utils = require("./utils");
 const { objectDefaults } = utils;
-let config = objectDefaults(require("./config.json"), {
+let config = objectDefaults(JSON.parse(fs.readFileSync("./config.json", "utf-8")), {
     width: 800,
     height: 600,
-    discordClientId: "1020683907101892709",
-    discordRPC: true,
-    playerCheckInterval: 500,
     minWidth: 400,
     minHeight: 400,
+    playerCheckInterval: 500,
+    discordClientId: "1020683907101892709",
+    discordRPC: true,
     discordTitle: "TIDAL",
     discordType: 2,
-    discordIdleText: "Browing TIDAL"
+    discordIdleText: "Browing TIDAL",
 });
 
 let window;
