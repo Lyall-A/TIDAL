@@ -146,7 +146,7 @@ function updateConfig(newConfig) {
     lastConfigUpdate = Date.now();
     config = { ...config, ...newConfig };
     console.log("Updating config");
-    console.log (config);
+    // console.log(config);
     fs.writeFileSync(path.join(dataPath, "config.json"), JSON.stringify(config, null, 4));
 }
 
