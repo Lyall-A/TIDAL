@@ -157,7 +157,7 @@ function updateConfig(newConfig) {
 }
 
 function formatString(str, obj) {
-    return str.replace(/(?<!\\){(.*?)}/g, (match, value) => value.split(".").reduce((prev, curr) => prev?.[curr], obj));
+    return str.replace(/(?<!\\){(.*?)}/g, (match, value) => value.split(".").reduce((acc, curr) => acc?.[curr], obj));
 }
 
 ipcMain.handle("set-idle", (event) => {
