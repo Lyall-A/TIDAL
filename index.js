@@ -12,11 +12,23 @@ let config = objectDefaults(configFile, {
     y: null,
     width: 800,
     height: 600,
-    discordClientId: "1020683907101892709",
-    discordRPC: true,
-    discordTitle: "TIDAL",
-    discordType: 2,
-    discordIdleText: "Browsing TIDAL",
+    fullscreen: false,
+    discord: {
+        rpc: true,
+        clientId: "1020683907101892709",
+        title: "TIDAL",
+        playingPresence: true,
+        playingType: 2,
+        playingDetails: "{title}",
+        playingState: "{artist}",
+        playingLargeText: "{album}",
+        playingTimestamps: true,
+        idlePresence: false,
+        idleType: 0,
+        idleDetails: "Browsing TIDAL",
+        idleState: null,        
+    },
+    playingTitle: "{title} - {artist}",
     playerCheckInterval: 500,
     trackInTitle: true,
     minWidth: 400,
@@ -34,7 +46,7 @@ updateConfig();
 
 // let playing = { };
 
-if (config.discordRPC) setupDiscordRPC();
+if (config.discord.rpc) setupDiscordRPC();
 
 function createWindow() {
     window = new BrowserWindow({
@@ -46,13 +58,14 @@ function createWindow() {
         height: config.height,
         minWidth: config.minWidth,
         minHeight: config.minHeight,
+        fullscreen: config.fullscreen,
         webPreferences: {
             preload: path.resolve(__dirname, "preload.js"),
             contextIsolation: true
         }
     });
 
-    window.setMenuBarVisibility(false); 
+    window.setMenuBarVisibility(false);
 
     window.webContents.send("config", config);
 
@@ -67,6 +80,9 @@ function createWindow() {
         const [width, height] = window.getSize();
         updateConfig({ width, height });
     });
+
+    window.on("enter-full-screen", () => updateConfig({ fullscreen: true }));
+    window.on("leave-full-screen", () => updateConfig({ fullscreen: false }));
 
     window.on("show", () => {
         console.log("Window showed");
@@ -107,14 +123,14 @@ app.fullQuit = () => {
 
 function setupDiscordRPC() {
     console.log("Setting up Discord RPC");
-    discordRpc = new RPC({ clientId: config.discordClientId });
+    discordRpc = new RPC({ clientId: config.discord.clientId });
     discordRpc.connectIPC();
     // TODO: check for close
     discordRpc.on("READY", () => {
         console.log("Discord RPC ready");
         discordRpcReady = true;
     });
-    // discordRpc.on("ipc-m essage", console.log);
+    // discordRpc.on("ipc-message", console.log);
 }
 
 function updateConfig(newConfig) {
@@ -128,41 +144,57 @@ function updateConfig(newConfig) {
         return;
     };
     lastConfigUpdate = Date.now();
-    console.log("Updating config");
     config = { ...config, ...newConfig };
+    console.log("Updating config");
+    console.log (config);
     fs.writeFileSync(path.join(dataPath, "config.json"), JSON.stringify(config, null, 4));
+}
+
+function formatString(str, obj) {
+    return str.replace(/(?<!\\){(.*?)}/g, (match, value) => value.split(".").reduce((prev, curr) => prev?.[curr], obj));
 }
 
 ipcMain.handle("set-idle", (event) => {
     // console.log("Set idle");
-    if (discordRpcReady) discordRpc.setActivity({
-        name: config.discordTitle,
-        type: config.discordType,
-        details: config.discordIdleText,
-        assets: {
-            large_image: "tidal",
-            large_text: "TIDAL"
+    if (discordRpcReady) {
+        if (config.discord.idlePresence) {
+            discordRpc.setActivity({
+                name: config.discord.title,
+                type: config.discord.idleType,
+                details: config.discord.idleDetails,
+                state: config.discord.idleState,
+                assets: {
+                    large_image: "tidal",
+                    large_text: "TIDAL"
+                }
+            });
+        } else {
+            discordRpc.setActivity();
         }
-    });
+    }
 });
 
 ipcMain.handle("set-playing", (event, playing) => {
     // console.log("Set playing", playing);
-    if (discordRpcReady) discordRpc.setActivity({
-        name: config.discordTitle,
-        type: config.discordType,
-        details: playing.title,
-        state: playing.artist,
-        assets: {
-            large_image: playing.cover.find(i => i.size === "640x640")?.url,
-            large_text: playing.album,
-            small_image: "tidal",
-            small_text: "TIDAL"
-        },
-        // NOTE: when using type 2 (Listening) this doesn't show up
-        timestamps: {
-            start: Date.now() - (playing.currentTime * 1000),
-            end: Date.now() + (playing.duration * 1000)
+    if (discordRpcReady) {
+        if (config.discord.playingPresence) {
+            discordRpc.setActivity({
+                name: config.discord.title,
+                type: config.discord.playingType,
+                details: formatString(config.discord.playingDetails, { ...playing }),
+                state: formatString(config.discord.playingState, { ...playing }),
+                assets: {
+                    large_image: playing.cover.find(i => i.size === "640x640")?.url, // TODO: idk if this size can be undefined, fallback to diff sizes?
+                    large_text: formatString(config.discord.playingLargeText, { ...playing }),
+                    small_image: "tidal",
+                    small_text: "TIDAL"
+                },
+                // NOTE: when using type 2 (Listening) this doesn't show up
+                timestamps: config.discord.playingTimestamps ? {
+                    start: Date.now() - (playing.currentTime * 1000),
+                    end: Date.now() + (playing.duration * 1000)
+                } : undefined
+            });
         }
-    });
+    }
 });

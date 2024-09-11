@@ -12,6 +12,10 @@ const tidal = {
     call: (event, ...args) => { tidal._listeners.filter(i => i.event === event).forEach((e, i) => { e.callback(...args); if (e.once) tidal._listeners.splice(i, 1) }) },
 }
 
+function formatString(str, obj) {
+    return str.replace(/(?<!\\){(.*?)}/g, (match, value) => value.split(".").reduce((prev, curr) => prev?.[curr], obj));
+}
+
 ipcRenderer.on("config", (event, i) => {
     config = i;
 
@@ -50,10 +54,10 @@ ipcRenderer.on("config", (event, i) => {
 
 tidal.on("track-change", () => {
     if (playing.hasMetadata && playing.state === 1) tidal.setPlaying(); else tidal.setIdle();
-    if (config.trackInTitle && playing.state === 1) document.title = `${playing.title} - ${playing.artist} - ${playing.album}`; else document.title = "TIDAL";
+    if (config.trackInTitle && playing.state === 1) document.title = formatString(config.playingTitle, { ...playing }); else document.title = "TIDAL";
 });
 
 tidal.on("state-change", () => {
     if (playing.hasMetadata && playing.state === 1) tidal.setPlaying(); else tidal.setIdle();
-    if (config.trackInTitle && playing.state === 1) document.title = `${playing.title} - ${playing.artist} - ${playing.album}`; else document.title = "TIDAL";
+    if (config.trackInTitle && playing.state === 1) document.title = formatString(config.playingTitle, { ...playing }); else document.title = "TIDAL";
 });
