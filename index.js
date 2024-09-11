@@ -42,12 +42,6 @@ let lastConfigUpdate;
 let discordRpc;
 let discordRpcReady = false;
 
-updateConfig();
-
-// let playing = { };
-
-if (config.discord.rpc) setupDiscordRPC();
-
 function createWindow() {
     window = new BrowserWindow({
         title: "TIDAL",
@@ -96,29 +90,41 @@ function createWindow() {
     });
 }
 
-app.whenReady().then(() => {
-    tray = new Tray(path.join(__dirname, "tray.png"));
-    tray.setToolTip("TIDAL");
-    tray.on("click", () => window.show());
-    tray.setContextMenu(Menu.buildFromTemplate([
-        { label: "Show", click: () => window.show() },
-        { label: "Quit", click: () => app.fullQuit() },
-    ]))
+const lock = app.requestSingleInstanceLock();
 
-    createWindow();
-
-    app.on("activate", () => {
-        if (!BrowserWindow.getAllWindows().length) createWindow();
-    });
-});
-
-app.on("window-all-closed", () => {
-    if (process.platform !== "darwin") app.quit();
-});
-
-app.fullQuit = () => {
-    app.isQuitting = true;
+if (!lock) {
+    console.log("Instance already running!");
     app.quit();
+} else {
+    app.on("second-instance", () => window.show());
+
+    app.whenReady().then(() => {
+        updateConfig();
+        if (config.discord.rpc) setupDiscordRPC();
+    
+        tray = new Tray(path.join(__dirname, "tray.png"));
+        tray.setToolTip("TIDAL");
+        tray.on("click", () => window.show());
+        tray.setContextMenu(Menu.buildFromTemplate([
+            { label: "Show", click: () => window.show() },
+            { label: "Quit", click: () => app.fullQuit() },
+        ]))
+    
+        createWindow();
+    
+        app.on("activate", () => {
+            if (!BrowserWindow.getAllWindows().length) createWindow();
+        });
+    });
+    
+    app.on("window-all-closed", () => {
+        if (process.platform !== "darwin") app.quit();
+    });
+    
+    app.fullQuit = () => {
+        app.isQuitting = true;
+        app.quit();
+    }
 }
 
 function setupDiscordRPC() {
