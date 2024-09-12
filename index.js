@@ -21,10 +21,15 @@ let config = objectDefaults(configFile, {
         playingType: 2,
         playingDetails: "{title}",
         playingState: "{artist}",
+        playingLargeImage: `@{cover.find(i => i.size === "640x640")?.url || "tidal"}`,
         playingLargeText: "{album}",
+        playingSmallImage: "tidal",
+        playingSmallText: "TIDAL",
         playingTimestamps: true,
-        idlePresence: false,
+        idlePresence: true,
         idleType: 0,
+        idleLargeImage: "tidal",
+        idleLargeText: "TIDAL",
         idleDetails: "Browsing TIDAL",
         idleState: null,        
     },
@@ -101,12 +106,13 @@ if (!lock) {
     app.whenReady().then(() => {
         updateConfig();
         if (config.discord.rpc) setupDiscordRPC();
-    
+        
         tray = new Tray(path.join(__dirname, "tray.png"));
         tray.setToolTip("TIDAL");
         tray.on("click", () => window.show());
         tray.setContextMenu(Menu.buildFromTemplate([
             { label: "Show", click: () => window.show() },
+            { type: "separator" },
             { label: "Quit", click: () => app.fullQuit() },
         ]))
     
@@ -156,8 +162,25 @@ function updateConfig(newConfig) {
     fs.writeFileSync(path.join(dataPath, "config.json"), JSON.stringify(config, null, 4));
 }
 
-function formatString(str, obj) {
-    return str.replace(/(?<!\\){(.*?)}/g, (match, value) => value.split(".").reduce((acc, curr) => acc?.[curr], obj));
+function formatString(str, obj = { }) {
+    let formatted = str || "";
+
+    // {}: Variable
+    formatted = formatted.replace(/\\?(?<!@){(.+?)}/g, (match, value) => {
+        if (match.startsWith("\\")) return match.replace("\\", "");
+        return value.split(".").reduce((acc, curr) => acc?.[curr], obj);
+    });
+
+    // @{}: Eval with variables
+    formatted = formatted.replace(/\\?@{(.+?)}/g, (match, value) => {
+        if (match.startsWith("\\")) return match.replace("\\", "");
+        try {
+            return eval(`${Object.entries(obj).map(i => `let ${i[0]} = ${JSON.stringify(i[1])};`).join("")}${value}`);
+        } catch (err) {
+            return;
+        }
+    });
+    return formatted;
 }
 
 ipcMain.handle("set-idle", (event) => {
@@ -165,13 +188,15 @@ ipcMain.handle("set-idle", (event) => {
     if (discordRpcReady) {
         if (config.discord.idlePresence) {
             discordRpc.setActivity({
-                name: config.discord.title,
+                name: formatString(config.discord.idleName || config.discord.title, { config }) || undefined,
                 type: config.discord.idleType,
-                details: config.discord.idleDetails,
-                state: config.discord.idleState,
+                details: formatString(config.discord.idleDetails, { config }) || undefined,
+                state: formatString(config.discord.idleState, { config }) || undefined,
                 assets: {
-                    large_image: "tidal",
-                    large_text: "TIDAL"
+                    large_image: formatString(config.discord.idleLargeImage, { config }) || undefined,
+                    large_text: formatString(config.discord.idleLargeText, { config }) || undefined,
+                    small_image: formatString(config.discord.idleSmallImage, { config }) || undefined,
+                    small_text: formatString(config.discord.idleSmallText, { config }) || undefined
                 }
             });
         } else {
@@ -185,15 +210,15 @@ ipcMain.handle("set-playing", (event, playing) => {
     if (discordRpcReady) {
         if (config.discord.playingPresence) {
             discordRpc.setActivity({
-                name: config.discord.title,
+                name: formatString(config.discord.playingName || config.discord.title, { config, ...playing }) || undefined,
                 type: config.discord.playingType,
-                details: formatString(config.discord.playingDetails, { ...playing }),
-                state: formatString(config.discord.playingState, { ...playing }),
+                details: formatString(config.discord.playingDetails, { config, ...playing }) || undefined,
+                state: formatString(config.discord.playingState, { config, ...playing }) || undefined,
                 assets: {
-                    large_image: playing.cover.find(i => i.size === "640x640")?.url, // TODO: idk if this size can be undefined, fallback to diff sizes?
-                    large_text: formatString(config.discord.playingLargeText, { ...playing }),
-                    small_image: "tidal",
-                    small_text: "TIDAL"
+                    large_image: formatString(config.discord.playingLargeImage, { config, ...playing }) || undefined,
+                    large_text: formatString(config.discord.playingLargeText, { config, ...playing }) || undefined,
+                    small_image: formatString(config.discord.playingSmallImage, { config, ...playing }) || undefined,
+                    small_text: formatString(config.discord.playingSmallText, { config, ...playing }) || undefined
                 },
                 // NOTE: when using type 2 (Listening) this doesn't show up
                 timestamps: config.discord.playingTimestamps ? {
