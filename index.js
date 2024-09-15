@@ -137,10 +137,17 @@ function setupDiscordRPC() {
     console.log("Setting up Discord RPC");
     discordRpc = new RPC({ clientId: config.discord.clientId });
     discordRpc.connectIPC();
-    // TODO: check for close
     discordRpc.on("READY", () => {
         console.log("Discord RPC ready");
         discordRpcReady = true;
+    });
+    discordRpc.on("ipc-end", () => {
+        console.log("Discord RPC closed");
+        setTimeout(() => discordRpc.connectIPC(), 1000);
+    });
+    discordRpc.on("ipc-error", err => {
+        console.log("Failed to connect to Discord RPC");
+        setTimeout(() => discordRpc.connectIPC(), 10000);
     });
     // discordRpc.on("ipc-message", console.log);
 }
